@@ -218,3 +218,5 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# Ignore raw dataset directory , we do this so when data folder is created to store processed data, it is not tracked by git. This is to avoid accidentally committing large files to the repository.
+data/
