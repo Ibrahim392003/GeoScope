@@ -1,0 +1,20 @@
+{
+  "dataset": "EuroSAT (RGB, Sentinel-2)",
+  "reference": "Helber et al., IEEE JSTARS 2019; https://github.com/phelber/EuroSAT",
+  "downloaded_via": "torchvision 0.28.0+cpu  datasets.EuroSAT(download=True)",
+  "timestamp_utc": "2026-10-17T10:29:03+00:00",
+  "python": "3.11.8",
+  "num_images": 27000,
+  "classes": [
+    "AnnualCrop",
+    "Forest",
+    "HerbaceousVegetation",
+    "Highway",
+    "Industrial",
+    "Pasture",
+    "PermanentCrop",
+    "Residential",
+    "River",
+    "SeaLake"
+  ]
+}
