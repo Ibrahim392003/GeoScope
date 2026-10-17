@@ -1,7 +1,4 @@
-"""Phase 2 - Exploratory data analysis. Saves all charts to figures/.
 
-Run after clean_data.py:   python data_scripts/eda.py
-"""
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
