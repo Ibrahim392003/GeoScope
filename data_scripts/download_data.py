@@ -1,9 +1,4 @@
-"""Phase 2 - Data collection.
 
-Downloads EuroSAT (RGB version, Helber et al. 2019) through torchvision and
-writes a small download log (report/download_log.json) as collection evidence.
-The raw data itself is git-ignored (see .gitignore: data/).
-"""
 import json
 import platform
 from datetime import datetime, timezone
