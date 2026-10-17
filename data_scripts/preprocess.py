@@ -1,16 +1,4 @@
-"""Phase 2 - Feature strategy: encoding, splitting, scaling and normalization.
 
-Run after clean_data.py:   python data_scripts/preprocess.py
-
-Produces
-  data/label_map.json   class name <-> integer id (label encoding)
-  data/splits.csv       path, class_name, label, split  (stratified 70/15/15, seed 42)
-and prints the per-channel mean/std of the TRAIN split (computed from the
-manifest, no image re-reading needed).
-
-Import-friendly: `get_transforms()` and `GeoScopeDataset` are used by the
-training phase.
-"""
 import json
 from pathlib import Path
 
