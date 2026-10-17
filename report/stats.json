@@ -1,0 +1,16 @@
+{
+  "TotalRaw": 27000,
+  "Corrupt": 0,
+  "BadFormat": 0,
+  "ConflictLabel": 0,
+  "ExactDup": 0,
+  "Degenerate": 0,
+  "NearDupFlagged": 803,
+  "OutlierFlagged": 358,
+  "TotalClean": 27000,
+  "Train": 18900,
+  "Val": 4050,
+  "Test": 4050,
+  "DatasetMean": "0.3445, 0.3803, 0.4079",
+  "DatasetStd": "0.2026, 0.1367, 0.1155"
+}

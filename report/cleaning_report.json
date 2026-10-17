@@ -1,0 +1,18 @@
+{
+  "image_root": "C:\\Users\\pak\\Documents\\GeoScope\\data\\eurosat\\2750",
+  "total_raw": 27000,
+  "status_counts": {
+    "ok": 27000
+  },
+  "empty_class_folders": [],
+  "near_duplicate_pairs": 121238,
+  "near_duplicate_images_flagged": 803,
+  "outliers_flagged": 358,
+  "total_kept": 27000,
+  "policy": {
+    "drop_outliers": false,
+    "drop_near_dups": false,
+    "near_dup_threshold": 3,
+    "outlier_rule": "3*IQR per class"
+  }
+}
