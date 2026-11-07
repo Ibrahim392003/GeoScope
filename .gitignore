@@ -231,3 +231,5 @@ data/
 *.fdb_latexmk
 *.bbl
 *.blg
+
+models/checkpoints/
