@@ -1,5 +1,5 @@
 {
-  "image_root": "C:\\Users\\pak\\Documents\\GeoScope\\data\\eurosat\\2750",
+  "image_root": "C:\\GeoScope\\GeoScope\\data\\eurosat\\2750",
   "total_raw": 27000,
   "status_counts": {
     "ok": 27000
