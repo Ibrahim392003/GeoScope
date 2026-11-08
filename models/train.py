@@ -24,8 +24,8 @@ class EuroSATDataset(Dataset):
         img_path = row['filepath'] if 'filepath' in row else row['path']
         if not os.path.exists(img_path):
             img_path = os.path.join('data/eurosat/2750', img_path)
-            image = Image.open(img_path).convert('RGB')
-            label = int(row['label'])
+        image = Image.open(img_path).convert('RGB')
+        label = int(row['label'])
 
         if self.transform:
             image = self.transform(image)
