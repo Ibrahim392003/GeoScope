@@ -90,7 +90,7 @@ to every file:
 
 ## Team
 
-| Member | Responsibilities |
-|--------|------------------|
-| _Member 1_ | _e.g. data cleaning, report_ |
-| _Member 2_ | _e.g. EDA, preprocessing, README_ |
+| Member |
+|--------|
+| syeda faryal zehra  |
+| ibrahim qaiser |

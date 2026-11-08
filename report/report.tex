@@ -2,6 +2,12 @@
 
 \usepackage[margin=2.5cm]{geometry}
 \usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% Set font to Arial / Helvetica clone for the entire document
+\usepackage[scaled]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
@@ -37,11 +43,6 @@
 \providecommand{\statDatasetMean}{\tbd}
 \providecommand{\statDatasetStd}{\tbd}
 
-% Statements about the data that must be confirmed against the real figures
-% are shown in red. Delete the \verify{...} wrapper once confirmed.
-\newcommand{\verify}[1]{\textcolor{red}{#1}}
-
-% Include a figure if it exists, otherwise show a placeholder box.
 \newcommand{\safefig}[2][width=\linewidth]{%
   \IfFileExists{../figures/#2}%
     {\includegraphics[#1]{../figures/#2}}%
@@ -49,10 +50,21 @@
 
 \title{\textbf{GeoScope: Explainable Land-Use Classification of Satellite Imagery}\\[0.3em]
 \large Deliverable 1 --- Problem Definition and Data Acquisition}
-\author{Ibrahim \textcolor{red}{[Surname, ID]} \and \textcolor{red}{[Teammate name, ID]}\\[0.5em]
-Track A: Application Development\\
-\small Repository: \url{https://github.com/Ibrahim392003/GeoScope}}
-\date{October 2026}
+
+\author{
+  \begin{tabular}{c c}
+    \toprule
+    \textbf{Team Member} & \textbf{Roll No.} \\
+    \midrule
+    \textcolor{blue}{Syeda Faryal Zehra} & \textcolor{blue}{24l-2556} \\
+    \textcolor{blue}{Ibrahim Qaiser} & \textcolor{blue}{24l-2513} \\
+    \bottomrule
+  \end{tabular}\\[1em]
+  \small Track A: Application Development\\
+  \small Repository: \url{https://github.com/Ibrahim392003/GeoScope}
+}
+
+\date{23 October 2026}
 
 \begin{document}
 \maketitle
@@ -139,7 +151,7 @@ rather than assumed.
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{@{}p{3.2cm}p{5.6cm}p{5.6cm}@{}}
+\begin{tabular}{@{}p{3.2cm}p{5.8cm}p{5.8cm}@{}}
 \toprule
 \textbf{Aspect} & \textbf{Rule-based} & \textbf{ML / DL (GeoScope)}\\
 \midrule
@@ -171,7 +183,7 @@ each (Table~\ref{tab:classes}). We use the RGB version distributed through \text
 \begin{table}[H]
 \centering
 \small
-\begin{tabular}{@{}lrlr@{}}
+\begin{tabular}{@{}l r l r@{}}
 \toprule
 \textbf{Class} & \textbf{Images} & \textbf{Class} & \textbf{Images}\\
 \midrule
