@@ -1,0 +1,4 @@
+run_name,model,lr,batch_size,dropout,weight_decay,epochs,best_val_acc,best_val_loss,best_epoch,train_time_sec
+efficientnet_lr0.001_bs32_do0_wd0.01,efficientnet,0.001,32,0.0,0.01,3,0.9718518518518519,0.09346733382947593,3,315.8
+efficientnet_lr0.0001_bs32_do0_wd0.01,efficientnet,0.0001,32,0.0,0.01,3,0.9841975308641975,0.048585966909821664,3,325.5
+efficientnet_lr1e-05_bs32_do0_wd0.01,efficientnet,1e-05,32,0.0,0.01,3,0.9634567901234568,0.13380066464068713,3,324.9
