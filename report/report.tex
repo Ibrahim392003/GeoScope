@@ -368,26 +368,187 @@ that learn spatial structure instead.
 \end{figure}
 
 % =============================================================================
-\section{Summary and Next Steps}
+\section{Phase 3: Model Architecture \& Implementation}
 % =============================================================================
-Phase~1 established that automatic, \emph{explainable} land-use classification is a real need and that
-deep learning is justified over rule-based programming because of the high variability and low
-colour separability of the classes. Phase~2 delivered a reproducible pipeline: scripted collection,
-an auditable cleaning stage, a stratified split, a documented normalization strategy and an initial
-EDA, leaving \statTotalClean{} clean images for modelling.
 
-Planned work for the next phases:
+\subsection{Framework Selection}
+All neural architectures in GeoScope are implemented using \textbf{PyTorch 2.x} and \textbf{Torchvision}. PyTorch was selected for its native dynamic computation graph, modular custom layer execution API, rich library of pre-trained vision backbones, and direct compatibility with gradient-based visual explainability hooks (\texttt{captum} / custom hooks).
+
+\subsection{Model Architecture Design}
+We evaluate three deep learning architectures representing distinct vision paradigms:
+
+\begin{enumerate}[nosep]
+  \item \textbf{ResNet-18 \cite{he2016}:} A residual convolutional neural network pre-trained on ImageNet containing 11.18M parameters. Its 8 residual blocks utilize shortcut connections to eliminate vanishing gradients. The final classification head is replaced with a linear layer mapping 512 feature representations to 10 land-use logits (checkpoint size: 44.8~MB).
+  \item \textbf{EfficientNet-B0 \cite{tan2019}:} A compound-scaled convolutional network with 4.02M parameters leveraging Mobile Inverted Bottleneck Convolutions (MBConv) and Squeeze-and-Excitation (SE) feature re-weighting. It provides high computational efficiency with a lightweight checkpoint footprint of 16.4~MB.
+  \item \textbf{ViT-B/16 \cite{dosovitskiy2021}:} A Vision Transformer containing 85.81M parameters. It splits upscaled $224\times224$ patches into 196 non-overlapping $16\times16$ visual tokens. Tokens are combined with positional encodings and a \texttt{[CLS]} token before passing through 12 Multi-Head Self-Attention (MHSA) encoder blocks (checkpoint size: 343.3~MB).
+\end{enumerate}
+
+\subsection{Grad-CAM Visual Explainability Engine}
+To fulfill the core requirement of explainable land-use classification established in Phase 1, we implemented Gradient-weighted Class Activation Mapping (\texttt{models/gradcam.py}) \cite{selvaraju2017}. 
+For convolutional backbones (ResNet-18 and EfficientNet-B0), forward feature maps $A^k$ and target class gradients $y^c$ are extracted from the final convolutional block (\texttt{layer4} in ResNet-18, \texttt{features[8]} in EfficientNet-B0). Neuron importance weights $\alpha_k^c$ are computed via global average pooling:
+\begin{equation}
+\alpha_k^c = \frac{1}{Z} \sum_{i} \sum_{j} \frac{\partial y^c}{\partial A_{i,j}^k}
+\end{equation}
+The coarse localization map $L_{\text{Grad-CAM}}^c = \text{ReLU}\left(\sum_k \alpha_k^c A^k\right)$ is projected back onto the image patch to highlight discriminant spatial features (e.g., roof textures for \textit{Industrial}, linear channels for \textit{River}, or dense canopy structures for \textit{Forest}). For ViT-B/16, attention gradients across the 196 token spatial grid are mapped to evaluate transformer patch attribution.
+
+\subsection{Loss Function and Optimization}
+Multi-class classification is optimized using Cross-Entropy Loss:
+\begin{equation}
+\mathcal{L}_{\text{CE}} = -\sum_{i=1}^{10} y_i \log(\hat{y}_i)
+\end{equation}
+Optimization across all three architectures is driven by the \textbf{AdamW} optimizer (decoupled weight decay) coupled with a Cosine Annealing learning rate schedule for smooth decay across training epochs.
+
+\subsection{Hyperparameter Tuning}
+Prior to final model training, we executed a total of 18 systematic hyperparameter search runs across all candidate architectures (\texttt{models/tune.py}). ResNet-18 was tuned across 12 combinations of learning rates, batch sizes, and dropout probabilities. EfficientNet-B0 and ViT-B/16 were evaluated across learning rate sweeps while maintaining constant batch size and weight decay. ViT-B/16 underwent fewer tuning iterations due to its heavy computational runtime ($\approx 2{,}200$ seconds per 3-epoch search run).
+
+Table~\ref{tab:hyperparameter_tuning} documents the exact parameter grids tested, the winning configuration for each model, their validation accuracy during tuning, and the engineering justification.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}p{2.3cm}p{3.8cm}p{3.1cm}r p{4.2cm}@{}}
+\toprule
+\textbf{Model} & \textbf{Tested Parameter Grid} & \textbf{Selected Best Config} & \textbf{Val Acc} & \textbf{Selection Justification} \\
+\midrule
+ResNet-18 & 
+LR: $\{10^{-3}, 10^{-4}, 10^{-5}\}$; \newline
+BS: $\{32, 64\}$; \newline
+Dropout: $\{0.0, 0.3\}$ & 
+$\text{LR}=10^{-4}$, $\text{BS}=64$, \newline
+$\text{Dropout}=0.0$, $\text{WD}=0.01$ & 
+98.00\% & 
+Higher batch size (64) stabilized batch norm statistics; lower LR avoided destroying pre-trained weights. \\
+\midrule
+EfficientNet-B0 & 
+LR: $\{10^{-3}, 10^{-4}, 10^{-5}\}$; \newline
+BS: 32; Dropout: 0.0 & 
+$\text{LR}=10^{-4}$, $\text{BS}=32$, \newline
+$\text{Dropout}=0.0$, $\text{WD}=0.01$ & 
+98.42\% & 
+$\text{LR}=10^{-4}$ provided optimal convergence rate for depthwise separable MBConv blocks. \\
+\midrule
+ViT-B/16 & 
+LR: $\{10^{-4}, 3\times10^{-5}, 10^{-5}\}$; \newline
+BS: 32; Dropout: 0.0 & 
+$\text{LR}=10^{-5}$, $\text{BS}=32$, \newline
+$\text{Dropout}=0.0$, $\text{WD}=0.01$ & 
+98.25\% & 
+Smallest learning rate ($10^{-5}$) prevented self-attention loss spikes and gradient instability. \\
+\bottomrule
+\end{tabular}
+\caption{Comprehensive hyperparameter tuning search space, selected configurations, validation accuracy, and technical justifications.}
+\label{tab:hyperparameter_tuning}
+\end{table}
+
+% =============================================================================
+\section{Phase 4: Training \& Empirical Evaluation}
+% =============================================================================
+
+\subsection{Validation Strategy}
+Data is split using a stratified $70/15/15$ ratio ($18{,}900$ train, $4{,}050$ validation, $4{,}050$ test patches) with fixed random seed 42. Stratification enforces identical class distributions across all splits, preventing class imbalance skew during evaluation.
+
+\subsection{Metric Analysis}
+Evaluating models strictly on accuracy can be misleading in remote sensing. We evaluate Accuracy, Macro-Precision, Macro-Recall, Macro-F1, One-vs-Rest AUC-ROC, Inference Latency (ms/img), and Checkpoint Size. Table~\ref{tab:model_comparison} summarizes empirical test set performance across all three models on the held-out 15\% test set ($4{,}050$ unseen patches).
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+\textbf{Model} & \textbf{Params (M)} & \textbf{Test Acc} & \textbf{Macro P} & \textbf{Macro R} & \textbf{Macro F1} & \textbf{AUC-ROC} & \textbf{ms/img}\\
+\midrule
+ResNet-18 & 11.2 & 98.37\% & 0.9834 & 0.9828 & 0.9831 & 0.9998 & 0.85 \\
+EfficientNet-B0 & 4.0 & 98.64\% & 0.9867 & 0.9852 & 0.9858 & 0.9998 & 1.08 \\
+ViT-B/16 & \textbf{85.8} & \textbf{98.84\%} & \textbf{0.9886} & \textbf{0.9879} & \textbf{0.9882} & \textbf{0.9999} & 10.74 \\
+\bottomrule
+\end{tabular}
+\caption{Empirical evaluation benchmark results on the EuroSAT test set ($4{,}050$ images).}
+\label{tab:model_comparison}
+\end{table}
+
+ViT-B/16 achieves the highest overall performance (98.84\% accuracy, 0.9882 Macro-F1, 0.9999 AUC-ROC), but requires 10.74~ms per image. EfficientNet-B0 provides an outstanding trade-off, achieving 98.64\% accuracy with only 4.02M parameters (16.4~MB checkpoint) and 1.08~ms latency.
+
+Figure~\ref{fig:curves_roc} presents the multi-class ROC plots generated for all three models during evaluation.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.32\linewidth}\safefig[width=\linewidth]{evaluation_results/roc_resnet18.png}\end{minipage}
+\hfill
+\begin{minipage}{0.32\linewidth}\safefig[width=\linewidth]{evaluation_results/roc_efficientnet.png}\end{minipage}
+\hfill
+\begin{minipage}{0.32\linewidth}\safefig[width=\linewidth]{evaluation_results/roc_vit.png}\end{minipage}
+\caption{Multi-class ROC curves on test set: ResNet-18 (left), EfficientNet-B0 (center), and ViT-B/16 (right).}
+\label{fig:curves_roc}
+\end{figure}
+
+\subsection{Visual Explainability Analysis (Grad-CAM)}
+Figure~\ref{fig:gradcam_compare} illustrates the cross-model Grad-CAM feature heatmaps generated across land-use classes.
+
+\begin{figure}[H]
+\centering
+\safefig[width=0.92\linewidth]{evaluation_results/gradcam_compare.png}
+\caption{Cross-model Grad-CAM visual explainability comparison across land-use classes. Heatmaps demonstrate localized spatial feature activation maps across ResNet-18, EfficientNet-B0, and ViT-B/16.}
+\label{fig:gradcam_compare}
+\end{figure}
+
+\paragraph{Explainability Insights.}
 \begin{itemize}[nosep]
-  \item Train and benchmark ResNet-18, EfficientNet and ViT-B/16 with transfer learning, plus a
-        colour-histogram rule-based baseline; report accuracy, macro-F1, confusion matrices and
-        inference speed.
-  \item Implement Grad-CAM for the CNNs. \emph{Risk:} ViT has no convolutional feature maps, so
-        explanations will need an attention-based variant (e.g.\ attention rollout or Grad-CAM on
-        token embeddings); this will be evaluated early.
-  \item Check for near-duplicate leakage across splits and tune the outlier policy using validation
-        results.
-  \item Build and deploy the web interface.
+  \item \textbf{CNN Spatial Focus (ResNet-18 \& EfficientNet-B0):} Convolutional models show smooth, localized activation maps. For \textit{Highway} and \textit{River}, heatmaps tightly outline linear structural paths. For \textit{Industrial}, activation maps concentrate directly on rectangular roof clusters and paved surfaces.
+  \item \textbf{Transformer Token Focus (ViT-B/16):} ViT heatmaps display high-frequency, patch-based token activations across visual boundaries, reflecting global self-attention mechanisms over non-overlapping $16\times16$ visual tokens.
 \end{itemize}
+
+\subsection{Error Analysis \& Bias Check}
+Figure~\ref{fig:model_errors} shows the per-class error distributions across all models.
+
+\begin{figure}[H]
+\centering
+\begin{minipage}{0.32\linewidth}\safefig[width=\linewidth]{evaluation_results/errors_resnet18.png}\end{minipage}
+\hfill
+\begin{minipage}{0.32\linewidth}\safefig[width=\linewidth]{evaluation_results/errors_efficientnet.png}\end{minipage}
+\hfill
+\begin{minipage}{0.32\linewidth}\safefig[width=\linewidth]{evaluation_results/errors_vit.png}\end{minipage}
+\caption{Per-class misclassification error plots: ResNet-18 (left), EfficientNet-B0 (center), and ViT-B/16 (right).}
+\label{fig:model_errors}
+\end{figure}
+
+\paragraph{Error Analysis.} Across all models, the weakest class is \textbf{PermanentCrop} (F1 score ranging from 0.969 to 0.972). Top misclassification errors are concentrated in spectrally overlapping pairs:
+\begin{enumerate}[nosep]
+  \item \textit{PermanentCrop} $\rightarrow$ \textit{AnnualCrop} (8 to 9 errors) and \textit{HerbaceousVegetation} (7 to 11 errors) due to shared vegetative spectral responses outside peak crop seasons.
+  \item \textit{River} $\rightarrow$ \textit{Highway} (3 to 8 errors) due to narrow linear geometry crossing background landscapes.
+  \item \textit{Pasture} $\rightarrow$ \textit{Forest} / \textit{HerbaceousVegetation} (4 errors) due to similarity in RGB space without Near-Infrared (NIR) bands.
+\end{enumerate}
+
+\paragraph{Bias Check \& Subgroup Robustness.} We performed explicit subgroup bias checks across patch brightness, contrast, statistical outliers, and near-duplicates:
+\begin{itemize}[nosep]
+  \item \textbf{Brightness \& Contrast Subgroup Bias:} Model accuracy remains highly consistent across darker, middle, and brighter brightness thirds (98.07\%--98.96\%), proving robust lighting invariance.
+  \item \textbf{Outlier \& Duplicate Robustness:} Flagged statistical outliers ($n=39$) showed slightly lower accuracy (94.87\%--97.44\%), demonstrating that extreme contrast or lighting variations account for a disproportionate share of errors. Flagged near-duplicates ($n=126$) achieved 100\% accuracy across all three models.
+\end{itemize}
+
+% =============================================================================
+\section{Professional GitHub \& Collaboration Policy}
+% =============================================================================
+In strict compliance with project policies, \textbf{no manual file uploads were performed using the GitHub web UI}. All commits, branches, and scripts were pushed exclusively via the Git Command Line Interface (CLI).
+
+Table~\ref{tab:git_contributions} details team member module ownership mapped directly to Git commit histories.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{@{}llp{8.8cm}@{}}
+\toprule
+\textbf{Member} & \textbf{Roll No.} & \textbf{Git Commit History \& Module Ownership Contribution} \\
+\midrule
+Syeda Faryal Zehra & 24l-2556 & Preprocessing scripts, Grad-CAM module (\texttt{models/gradcam.py}), model training, hyperparameter tuning, and metric evaluation pipelines for ResNet-18 and EfficientNet-B0; subgroup bias implementation. \\
+Ibrahim Qaiser & 24l-2513 & Model architecture implementation, training, and hyperparameter tuning for Vision Transformer (ViT-B/16); repository structure, requirements configuration, and LaTeX report compilation. \\
+\bottomrule
+\end{tabular}
+\caption{Contribution table mapping Git commit authors to specific project modules.}
+\label{tab:git_contributions}
+\end{table}
+
+\subsection{Model Weights Availability}
+To maintain repository size compliance, binary checkpoint files ($>100\text{ MB}$) are excluded from Git version control via \texttt{.gitignore}. All trained PyTorch checkpoints (\texttt{resnet18\_best.pth}, \texttt{efficientnet\_best.pth}, and \texttt{vit\_best.pth}) are hosted externally on Google Drive and accessible at: \\
+\url{https://drive.google.com/drive/folders/1t420bNansMSE7BrX4Qnnc8burWkLmg0m?usp=sharing}.
 
 \begin{thebibliography}{9}
 \bibitem{helber2019} P.~Helber, B.~Bischke, A.~Dengel, D.~Borth.
