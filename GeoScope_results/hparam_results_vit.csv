@@ -1,0 +1,4 @@
+run_name,model,lr,batch_size,dropout,weight_decay,epochs,best_val_acc,best_val_loss,best_epoch,train_time_sec
+vit_lr0.0001_bs32_do0_wd0.01,vit,0.0001,32,0.0,0.01,3,0.9740740740740741,0.08021315980397947,1,2203.0
+vit_lr3e-05_bs32_do0_wd0.01,vit,3e-05,32,0.0,0.01,3,0.980246913580247,0.05925622496104305,2,2186.8
+vit_lr1e-05_bs32_do0_wd0.01,vit,1e-05,32,0.0,0.01,3,0.9824691358024691,0.05626321284456846,2,2205.8
