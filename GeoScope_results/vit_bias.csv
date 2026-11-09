@@ -1,0 +1,21 @@
+group_type,group,n,accuracy
+class,AnnualCrop,450,0.9933333333333333
+class,Forest,450,1.0
+class,HerbaceousVegetation,450,0.9844444444444445
+class,Highway,375,0.9946666666666667
+class,Industrial,375,0.9973333333333333
+class,Pasture,300,0.9866666666666667
+class,PermanentCrop,375,0.9466666666666667
+class,Residential,450,0.9977777777777778
+class,River,375,0.9893333333333333
+class,SeaLake,450,0.9888888888888889
+brightness (within class),darker third,1350,0.9896296296296296
+brightness (within class),middle third,1350,0.9874074074074074
+brightness (within class),brighter third,1350,0.9881481481481481
+contrast (within class),lower third,1350,0.9881481481481481
+contrast (within class),middle third,1350,0.9925925925925926
+contrast (within class),higher third,1350,0.9844444444444445
+outlier,flagged,39,0.9743589743589743
+outlier,not flagged,4011,0.9885315382697581
+near_duplicate,flagged,126,1.0
+near_duplicate,not flagged,3924,0.9880224260958206

@@ -1,0 +1,53 @@
+{
+  "accuracy": 0.9837037037037037,
+  "macro_precision": 0.9833767747636422,
+  "macro_recall": 0.9828444444444445,
+  "macro_f1": 0.9830565546229553,
+  "weighted_f1": 0.9836902924049817,
+  "macro_auc_ovr": 0.9998100225245654,
+  "worst_class": {
+    "name": "PermanentCrop",
+    "f1": 0.9690444145356663
+  },
+  "best_class": {
+    "name": "Forest",
+    "f1": 0.994475138121547
+  },
+  "top_confusions": [
+    {
+      "true": "PermanentCrop",
+      "pred": "AnnualCrop",
+      "count": 8
+    },
+    {
+      "true": "River",
+      "pred": "Highway",
+      "count": 8
+    },
+    {
+      "true": "PermanentCrop",
+      "pred": "HerbaceousVegetation",
+      "count": 7
+    },
+    {
+      "true": "Residential",
+      "pred": "Industrial",
+      "count": 7
+    },
+    {
+      "true": "Pasture",
+      "pred": "AnnualCrop",
+      "count": 5
+    }
+  ],
+  "run": "resnet18",
+  "model": "resnet18",
+  "dropout": 0.0,
+  "test_images": 4050,
+  "num_parameters": 11181642,
+  "checkpoint_mb": 44.8,
+  "latency_ms_per_image": 0.848,
+  "best_val_acc": 0.9837037037037037,
+  "best_epoch": 8,
+  "train_time_sec": 729.0
+}

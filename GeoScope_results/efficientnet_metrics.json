@@ -1,0 +1,53 @@
+{
+  "accuracy": 0.9864197530864197,
+  "macro_precision": 0.9866602256089534,
+  "macro_recall": 0.9851555555555555,
+  "macro_f1": 0.9858479890534539,
+  "weighted_f1": 0.9863952100557242,
+  "macro_auc_ovr": 0.9998353334341143,
+  "worst_class": {
+    "name": "PermanentCrop",
+    "f1": 0.97165991902834
+  },
+  "best_class": {
+    "name": "SeaLake",
+    "f1": 0.9966703662597114
+  },
+  "top_confusions": [
+    {
+      "true": "PermanentCrop",
+      "pred": "HerbaceousVegetation",
+      "count": 11
+    },
+    {
+      "true": "AnnualCrop",
+      "pred": "PermanentCrop",
+      "count": 5
+    },
+    {
+      "true": "Pasture",
+      "pred": "Forest",
+      "count": 4
+    },
+    {
+      "true": "Pasture",
+      "pred": "HerbaceousVegetation",
+      "count": 4
+    },
+    {
+      "true": "PermanentCrop",
+      "pred": "AnnualCrop",
+      "count": 4
+    }
+  ],
+  "run": "efficientnet",
+  "model": "efficientnet",
+  "dropout": 0.0,
+  "test_images": 4050,
+  "num_parameters": 4020358,
+  "checkpoint_mb": 16.4,
+  "latency_ms_per_image": 1.076,
+  "best_val_acc": 0.9864197530864197,
+  "best_epoch": 4,
+  "train_time_sec": 1068.7
+}

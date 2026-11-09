@@ -1,0 +1,53 @@
+{
+  "accuracy": 0.9883950617283951,
+  "macro_precision": 0.9885992843601461,
+  "macro_recall": 0.9879111111111112,
+  "macro_f1": 0.9881737800629748,
+  "weighted_f1": 0.9883657541360555,
+  "macro_auc_ovr": 0.9998638773494584,
+  "worst_class": {
+    "name": "PermanentCrop",
+    "f1": 0.9699453551912568
+  },
+  "best_class": {
+    "name": "Residential",
+    "f1": 0.9966703662597114
+  },
+  "top_confusions": [
+    {
+      "true": "PermanentCrop",
+      "pred": "AnnualCrop",
+      "count": 9
+    },
+    {
+      "true": "PermanentCrop",
+      "pred": "HerbaceousVegetation",
+      "count": 9
+    },
+    {
+      "true": "HerbaceousVegetation",
+      "pred": "Pasture",
+      "count": 4
+    },
+    {
+      "true": "Pasture",
+      "pred": "AnnualCrop",
+      "count": 3
+    },
+    {
+      "true": "River",
+      "pred": "Highway",
+      "count": 3
+    }
+  ],
+  "run": "vit",
+  "model": "vit",
+  "dropout": 0.0,
+  "test_images": 4050,
+  "num_parameters": 85806346,
+  "checkpoint_mb": 343.3,
+  "latency_ms_per_image": 10.741,
+  "best_val_acc": 0.9876543209876543,
+  "best_epoch": 5,
+  "train_time_sec": 7418.5
+}
