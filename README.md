@@ -72,8 +72,8 @@ GeoScope/
 │   └── gradcam.py          # Grad-CAM explainability engine for CNNs and Vision Transformers
 ├── figures/
 │   ├── evaluation_results/ # Test evaluation charts (ROC curves, confusion matrices, error grids, Grad-CAM maps)
-│   └── eda/                # Data distribution & channel histograms from Phase 2
-├── results/                # Metrics outputs, per-class CSV summaries, and TeX benchmark tables
+│   └── .png files          # Data distribution & channel histograms from Phase 2
+├── GeoScope_results/       # Metrics outputs, per-class CSV summaries, and TeX benchmark tables
 ├── report/                 # Full technical report source in LaTeX
 ├── requirements.txt        # Exact Python dependencies for environment reproduction
 └── README.md
