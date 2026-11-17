@@ -79,6 +79,9 @@ MODELS = {
 DRIVE_FOLDER = "https://drive.google.com/drive/folders/1t420bNansMSE7BrX4Qnnc8burWkLmg0m"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+# Every displayed image is rendered at this size; CSS scales it to the column.
+DISPLAY = 448
+
 TFM = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
@@ -170,16 +173,32 @@ def grad_cam(model, key, x):
     cam = F.relu((w * a).sum(1, keepdim=True))
     cam = F.interpolate(cam, size=(224, 224), mode="bilinear", align_corners=False)[0, 0]
     cam = cam.detach().cpu().numpy()
-    cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+    # Percentile clip: one hot patch (common in ViT) can't wash out the rest
+    cam = np.clip(cam / (np.percentile(cam, 99) + 1e-8), 0, 1)
     return probs, idx, cam
 
 
-def render_heatmap(img, cam, alpha, pure=False):
-    base = np.asarray(img.resize((224, 224), Image.BICUBIC), dtype=np.float32) / 255.0
+def upscale(img, size=DISPLAY):
+    return img.resize((size, size), Image.LANCZOS)
+
+
+def render_heatmap(img, cam, alpha, pure=False, size=DISPLAY):
+    base = np.asarray(upscale(img, size), dtype=np.float32) / 255.0
+    # Smoothly upsample the CAM BEFORE colorizing so it isn't blocky
+    cam_big = Image.fromarray((cam * 255).astype(np.uint8)).resize((size, size), Image.BICUBIC)
+    cam_big = np.asarray(cam_big, dtype=np.float32) / 255.0
     # Thermal colormap (matches the UI palette); swap to cm.jet for the classic look
-    heat = cm.inferno(cam)[..., :3]
+    heat = cm.inferno(cam_big)[..., :3]
     arr = heat if pure else np.clip((1 - alpha) * base + alpha * heat, 0, 1)
     return Image.fromarray((arr * 255).astype(np.uint8))
+
+
+def show_img(image, caption=None):
+    """Fill the column width; works on old and new Streamlit versions."""
+    try:
+        st.image(image, caption=caption, width="stretch")
+    except Exception:  # noqa: BLE001
+        st.image(image, caption=caption, use_container_width=True)
 
 
 def image_to_bytes(pil_img):
@@ -315,7 +334,13 @@ st.markdown("""
     }
     [data-testid="stFileUploader"] section:hover { border-color: #FF7A2F !important; background: rgba(255,122,47,.07) !important; }
 
-    [data-testid="stImage"] img { border-radius: 14px; border: 1px solid #2A3270; }
+    /* ---- Images: fill the column, equal squares, no overflow ---- */
+    [data-testid="stImage"] { width: 100% !important; }
+    [data-testid="stImage"] img {
+        border-radius: 14px; border: 1px solid #2A3270;
+        width: 100% !important; height: auto !important;
+        aspect-ratio: 1 / 1; object-fit: cover;
+    }
 
     /* ---- Buttons ---- */
     [data-testid="stDownloadButton"] button {
@@ -463,11 +488,11 @@ with tab_classify:
                     st.markdown("<div class='card-title' style='margin-top:.8rem'>Original and heatmap</div>",
                                 unsafe_allow_html=True)
                     cam_vis = render_heatmap(img, r["cam"], alpha, pure=pure_map)
-                    v1, v2 = st.columns(2)
+                    v1, v2 = st.columns(2, gap="medium")
                     with v1:
-                        st.image(img.resize((224, 224), Image.NEAREST), width=210, caption=f"Original ({img.size[0]}×{img.size[1]})")
+                        show_img(upscale(img), caption=f"Original ({img.size[0]}×{img.size[1]})")
                     with v2:
-                        st.image(cam_vis, width=210, caption=f"Grad-CAM, {r['ms']:.0f} ms")
+                        show_img(cam_vis, caption=f"Grad-CAM, {r['ms']:.0f} ms")
 
                     st.caption("Bright yellow and orange: high influence. Dark purple: low influence.")
 
@@ -545,11 +570,11 @@ with tab_classify:
                 st.error("Could not read this file as an image.")
                 st.stop()
 
-            cols = st.columns([0.85, 1, 1, 1], gap="medium")
+            cols = st.columns([1, 1, 1, 1], gap="medium")
             with cols[0]:
                 with st.container(border=True):
                     st.markdown("<div class='card-title'>Original</div>", unsafe_allow_html=True)
-                    st.image(img.resize((224, 224), Image.NEAREST), width=190, caption=f"{img.size[0]}×{img.size[1]} px")
+                    show_img(upscale(img), caption=f"{img.size[0]}×{img.size[1]} px")
 
             results = {}
             for col, n in zip(cols[1:], MODELS):
@@ -566,7 +591,7 @@ with tab_classify:
                         cls = CLASSES[r["idx"]]
                         conf = float(r["probs"][r["idx"]])
                         cam_vis = render_heatmap(img, r["cam"], alpha, pure=pure_map)
-                        st.image(cam_vis, width=190, caption=f"Grad-CAM, {r['ms']:.0f} ms")
+                        show_img(cam_vis, caption=f"Grad-CAM, {r['ms']:.0f} ms")
                         st.markdown(f"**{ICONS[cls]} {DISPLAY_NAMES[cls]}**")
                         st.caption(f"Confidence: **{conf:.1%}**")
 
