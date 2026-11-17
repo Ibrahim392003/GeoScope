@@ -49,7 +49,7 @@
     {\fbox{\parbox{0.9\linewidth}{\centering Missing figure: \detokenize{#2}\\ run \texttt{data\_scripts/eda.py}}}}}
 
 \title{\textbf{GeoScope: Explainable Land-Use Classification of Satellite Imagery}\\[0.3em]
-\large Deliverable 1 --- Problem Definition and Data Acquisition}
+\large Deliverable 3 --- Final Deployment \& Technical Report}
 
 \author{
   \begin{tabular}{c c}
@@ -64,19 +64,24 @@
   \small Repository: \url{https://github.com/Ibrahim392003/GeoScope}
 }
 
-\date{23 October 2026}
+\date{17 November 2026}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
 GeoScope is a web application that classifies $64\times64$ Sentinel-2 satellite patches into ten
-land-use classes and explains every prediction with a Grad-CAM heatmap. This report covers the first
-two project phases. Phase~1 defines the problem, the target audience and the case for deep learning
-over rule-based programming. Phase~2 documents the acquisition of the EuroSAT dataset, an
-image-specific cleaning pipeline (corrupt files, duplicates, outliers), the feature strategy
-(scaling, normalization, encoding, stratified splitting) and an initial exploratory data analysis.
-All numbers in this report are generated directly by the scripts in \texttt{data\_scripts/}.
+land-use classes and explains every prediction in real time with a Grad-CAM heatmap. This final
+report presents the complete end-to-end pipeline across Phases~1--5. Phase~1 defines the problem,
+the target audience, and the case for deep learning over rule-based programming. Phase~2 documents
+the acquisition of the EuroSAT dataset, an image-specific cleaning pipeline (corrupt files,
+duplicates, outliers), the feature strategy (scaling, normalization, encoding, stratified splitting),
+and an initial exploratory data analysis. Phase~3 details the implementation and hyperparameter
+tuning of ResNet-18, EfficientNet-B0, and ViT-B/16 alongside the Grad-CAM explainability engine.
+Phase~4 evaluates test-set performance, training convergence, visual explanations, error modes,
+and subgroup bias. Finally, Phase~5 documents the interactive application architecture and
+real-time inference workflow. All numbers in this report are generated directly by the scripts
+in \texttt{data\_scripts/} and \texttt{models/}.
 \end{abstract}
 
 % =============================================================================
@@ -145,7 +150,7 @@ classification for the following technical reasons.
 \end{enumerate}
 
 Table~\ref{tab:rule-vs-ml} summarizes the comparison. A simple colour-histogram rule baseline
-will still be implemented in Phase~3 as a lower bound so the benefit of deep learning is measured
+was also evaluated during benchmarking as a lower bound so the benefit of deep learning is measured
 rather than assumed.
 
 \begin{table}[H]
@@ -292,7 +297,7 @@ Implemented in \texttt{data\_scripts/preprocess.py}.
   \item[Augmentation (train only).] Random horizontal and vertical flips; land-use patches have no
         canonical orientation, so flips create realistic new views.
   \item[Class imbalance.] The largest class is 1.5$\times$ the size of the smallest (3{,}000 vs.\ 2{,}000
-        before cleaning). This mild imbalance does not justify oversampling or undersampling; we will
+        before cleaning). This mild imbalance does not justify oversampling or undersampling; we
         instead report macro-averaged F1 alongside accuracy and keep class-weighted loss as an option.
 \end{description}
 
@@ -396,7 +401,7 @@ Multi-class classification is optimized using Cross-Entropy Loss:
 \begin{equation}
 \mathcal{L}_{\text{CE}} = -\sum_{i=1}^{10} y_i \log(\hat{y}_i)
 \end{equation}
-Optimization across all three architectures is driven by the \textbf{AdamW} optimizer (decoupled weight decay) coupled with a Cosine Annealing learning rate schedule for smooth decay across training epochs.
+Optimization across all three architectures is driven by the \textbf{AdamW} optimizer with decoupled weight decay ($0.01$), saving the best model weights based on peak validation accuracy across epochs (\texttt{models/train.py}).
 
 \subsection{Hyperparameter Tuning}
 Prior to final model training, we executed a total of 18 systematic hyperparameter search runs across all candidate architectures (\texttt{models/tune.py}). ResNet-18 was tuned across 12 combinations of learning rates, batch sizes, and dropout probabilities. EfficientNet-B0 and ViT-B/16 were evaluated across learning rate sweeps while maintaining constant batch size and weight decay. ViT-B/16 underwent fewer tuning iterations due to its heavy computational runtime ($\approx 2{,}200$ seconds per 3-epoch search run).
@@ -444,8 +449,21 @@ Smallest learning rate ($10^{-5}$) prevented self-attention loss spikes and grad
 \section{Phase 4: Training \& Empirical Evaluation}
 % =============================================================================
 
-\subsection{Validation Strategy}
+\subsection{Validation Strategy \& Training Dynamics}
 Data is split using a stratified $70/15/15$ ratio ($18{,}900$ train, $4{,}050$ validation, $4{,}050$ test patches) with fixed random seed 42. Stratification enforces identical class distributions across all splits, preventing class imbalance skew during evaluation.
+
+Figure~\ref{fig:training_history} shows the individual per-epoch training and validation loss and accuracy curves for each architecture. Across all three models, training and validation losses decrease smoothly while validation accuracy stabilizes above 98\%, confirming well-regularized convergence without overfitting.
+
+\begin{figure}[H]
+\centering
+\safefig[width=0.85\linewidth]{evaluation_results/curves_resnet18.png}
+\vspace{0.5em}
+\safefig[width=0.85\linewidth]{evaluation_results/curves_efficientnet.png}
+\vspace{0.5em}
+\safefig[width=0.85\linewidth]{evaluation_results/curves_vit.png}
+\caption{Training and validation loss and accuracy curves across epochs: ResNet-18 (top), EfficientNet-B0 (middle), and ViT-B/16 (bottom).}
+\label{fig:training_history}
+\end{figure}
 
 \subsection{Metric Analysis}
 Evaluating models strictly on accuracy can be misleading in remote sensing. We evaluate Accuracy, Macro-Precision, Macro-Recall, Macro-F1, One-vs-Rest AUC-ROC, Inference Latency (ms/img), and Checkpoint Size. Table~\ref{tab:model_comparison} summarizes empirical test set performance across all three models on the held-out 15\% test set ($4{,}050$ unseen patches).
@@ -486,7 +504,7 @@ Figure~\ref{fig:gradcam_compare} illustrates the cross-model Grad-CAM feature he
 
 \begin{figure}[H]
 \centering
-\safefig[width=0.92\linewidth]{evaluation_results/gradcam_compare.png}
+\safefig[height=0.82\textheight, keepaspectratio]{evaluation_results/gradcam_compare.png}
 \caption{Cross-model Grad-CAM visual explainability comparison across land-use classes. Heatmaps demonstrate localized spatial feature activation maps across ResNet-18, EfficientNet-B0, and ViT-B/16.}
 \label{fig:gradcam_compare}
 \end{figure}
@@ -525,6 +543,34 @@ Figure~\ref{fig:model_errors} shows the per-class error distributions across all
 \end{itemize}
 
 % =============================================================================
+\section{Phase 5: Application Development \& Execution (Track A)}
+% =============================================================================
+
+\subsection{Backend Integration \& Real-Time Inference Pipeline}
+To transition the trained models into an interactive user-facing tool, we developed a local web application in \texttt{app.py}. The frontend communicates directly with our PyTorch inference pipeline and Grad-CAM visual explainability module (\texttt{models/gradcam.py}) in real time:
+\begin{enumerate}[nosep]
+  \item \textbf{Model Loading \& Evaluation Mode:} Trained checkpoints (\texttt{resnet18\_best.pth}, \texttt{efficientnet\_best.pth}, and \texttt{vit\_best.pth}) are loaded into memory with \texttt{model.eval()} enabled so users can toggle between architectures without reload delays.
+  \item \textbf{Consistent Preprocessing:} Uploaded satellite patches are automatically resized to $224\times224$ RGB tensors and standardized using ImageNet statistics ($\mu=(0.485,0.456,0.406)$, $\sigma=(0.229,0.224,0.225)$) to match training-time transforms.
+  \item \textbf{Inference \& Grad-CAM Generation:} A forward pass computes softmax class probabilities across all ten EuroSAT categories, while backward gradients on the predicted target class generate a spatial Grad-CAM heatmap overlaid onto the uploaded image.
+\end{enumerate}
+
+\subsection{User Interface \& Application Walkthrough}
+The application provides an intuitive workflow for uploading satellite imagery and inspecting model predictions during local execution and live viva demonstration:
+\begin{itemize}[nosep]
+  \item \textbf{Data Input \& Architecture Selection:} Users upload any satellite image patch (JPG/PNG/TIF) and select among \textit{EfficientNet-B0}, \textit{ResNet-18}, and \textit{ViT-B/16}.
+  \item \textbf{Visual Prediction Output:} The interface presents the original satellite patch alongside the Grad-CAM attention overlay, the top predicted land-use label, and class confidence scores (Figure~\ref{fig:app_screenshots}).
+\end{itemize}
+
+\begin{figure}[H]
+\centering
+\safefig[width=0.85\linewidth]{geoscopess1.png}
+\vspace{0.6em}
+\safefig[width=0.85\linewidth]{geoscopess2.png}
+\caption{GeoScope interactive web application (\texttt{app.py}): main upload and model selection interface (top) and real-time classification output with Grad-CAM heatmap overlay (bottom).}
+\label{fig:app_screenshots}
+\end{figure}
+
+% =============================================================================
 \section{Professional GitHub \& Collaboration Policy}
 % =============================================================================
 In strict compliance with project policies, \textbf{no manual file uploads were performed using the GitHub web UI}. All commits, branches, and scripts were pushed exclusively via the Git Command Line Interface (CLI).
@@ -539,7 +585,7 @@ Table~\ref{tab:git_contributions} details team member module ownership mapped di
 \textbf{Member} & \textbf{Roll No.} & \textbf{Git Commit History \& Module Ownership Contribution} \\
 \midrule
 Syeda Faryal Zehra & 24l-2556 & Preprocessing scripts, Grad-CAM module (\texttt{models/gradcam.py}), model training, hyperparameter tuning, and metric evaluation pipelines for ResNet-18 and EfficientNet-B0; subgroup bias implementation. \\
-Ibrahim Qaiser & 24l-2513 & Model architecture implementation, training, and hyperparameter tuning for Vision Transformer (ViT-B/16); repository structure, requirements configuration, and LaTeX report compilation. \\
+Ibrahim Qaiser & 24l-2513 & Model architecture implementation, training, and hyperparameter tuning for Vision Transformer (ViT-B/16); interactive web application (\texttt{app.py}), repository structure, requirements configuration, and LaTeX report compilation. \\
 \bottomrule
 \end{tabular}
 \caption{Contribution table mapping Git commit authors to specific project modules.}
