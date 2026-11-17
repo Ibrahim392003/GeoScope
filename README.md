@@ -1,7 +1,7 @@
 # GeoScope
 
 **Explainable land-use classification of satellite imagery.**  
-GeoScope is an end-to-end explainable deep-learning system that classifies Sentinel-2 satellite patches into 10 land-use classes using the [EuroSAT](https://github.com/phelber/EuroSAT) dataset. It benchmarks three distinct vision architectures (ResNet-18, EfficientNet-B0, and Vision Transformer ViT-B/16) in PyTorch, producing comprehensive empirical evaluations alongside Grad-CAM visual heatmaps that explain *which regions of the satellite patch drove the model's decision*.
+GeoScope is an end-to-end explainable deep-learning system and interactive web application that classifies Sentinel-2 satellite patches into 10 land-use classes using the [EuroSAT](https://github.com/phelber/EuroSAT) dataset. It benchmarks three distinct vision architectures (ResNet-18, EfficientNet-B0, and Vision Transformer ViT-B/16) in PyTorch, producing comprehensive empirical evaluations alongside Grad-CAM visual heatmaps that explain *which regions of the satellite patch drove the model's decision*.
 
 > Course Project --- Track A (Application Development). Team of 2.
 
@@ -15,7 +15,7 @@ GeoScope is an end-to-end explainable deep-learning system that classifies Senti
 | 2 | Data acquisition, cleaning, preprocessing & EDA | **Done** | See `data_scripts/` & `figures/` |
 | 3 | Model architecture implementation & hyperparameter tuning | **Done** | See `models/` & `GeoScope_results/` |
 | 4 | Empirical metric evaluation, bias check & Grad-CAM explainability | **Done** | See `models/gradcam.py` & `figures/evaluation_results/` |
-| 5 | Web application deployment | **Planned** | Track A deliverable |
+| 5 | Interactive web application & real-time Grad-CAM inference | **Done** | See `app.py` & `report/` |
 
 ---
 
@@ -26,6 +26,8 @@ In strict compliance with repository size guidelines, large binary model files (
 All pre-trained PyTorch model weight checkpoints (`resnet18_best.pth`, `efficientnet_best.pth`, and `vit_best.pth`) are hosted externally on Google Drive:
 
 👉 **[Download GeoScope Model Checkpoints on Google Drive](https://drive.google.com/drive/folders/1t420bNansMSE7BrX4Qnnc8burWkLmg0m?usp=sharing)**
+
+Place the downloaded `.pth` files into `models/checkpoints/` before launching `app.py` or running evaluation scripts.
 
 ---
 
@@ -56,6 +58,7 @@ All models were trained on $18{,}900$ images ($70\%$), validated on $4{,}050$ im
 
 ```text
 GeoScope/
+├── app.py                  # Interactive web application for real-time classification & Grad-CAM UI
 ├── data_scripts/
 │   ├── common.py           # Paths, constants, and dataset helper functions
 │   ├── download_data.py    # Automated dataset download via torchvision + validation logging
@@ -66,18 +69,35 @@ GeoScope/
 │   ├── architectures.py    # PyTorch implementations for ResNet-18, EfficientNet-B0, ViT-B/16
 │   ├── data_utils.py       # PyTorch Dataset wrappers & Sentinel-2 transforms
 │   ├── metrics_utils.py    # Metric computations, confusion matrices, bias check & TeX exporters
-│   ├── train.py            # Model training loop with Cosine Annealing & AdamW optimizer
+│   ├── train.py            # Model training loop with AdamW optimizer & best-checkpoint saving
 │   ├── tune.py             # 18-run grid search hyperparameter tuning engine
 │   ├── evaluate.py         # Test set evaluation, metrics, ROC curves, confusion matrices
 │   └── gradcam.py          # Grad-CAM explainability engine for CNNs and Vision Transformers
 ├── figures/
-│   ├── evaluation_results/ # Test evaluation charts (ROC curves, confusion matrices, error grids, Grad-CAM maps)
-│   └── .png files          # Data distribution & channel histograms from Phase 2
-├── GeoScope_results/       # Metrics outputs, per-class CSV summaries, and TeX benchmark tables
-├── report/                 # Full technical report source in LaTeX
+│   ├── evaluation_results/ # Training curves, ROC curves, confusion matrices, error grids, Grad-CAM maps
+│   └── *.png               # Phase 2 EDA charts & Phase 5 application UI screenshots
+├── GeoScope_results/       # Metrics outputs, training histories (*_history.json), & TeX benchmark tables
+├── report/                 # Full technical report source in LaTeX (Deliverable 3)
 ├── requirements.txt        # Exact Python dependencies for environment reproduction
 └── README.md
 ```
+
+---
+
+## Quickstart: Running the Web Application (Phase 5)
+
+```bash
+# 1. Clone the repository and install dependencies
+git clone https://github.com/Ibrahim392003/GeoScope.git
+cd GeoScope
+pip install -r requirements.txt
+
+# 2. Download pre-trained weights from the Google Drive link above into models/checkpoints/
+
+# 3. Launch the interactive GeoScope application locally
+streamlit run app.py
+```
+*(If your `app.py` entry point uses Gradio/Flask instead of Streamlit, run `python app.py`.)*
 
 ---
 
@@ -105,7 +125,7 @@ python models/tune.py --model vit --lrs 1e-4 3e-5 1e-5 --epochs 3
 # Final model training with best selected configurations
 python models/train.py --model resnet18 --epochs 10 --lr 1e-4 --batch_size 64
 python models/train.py --model efficientnet --epochs 10 --lr 1e-4 --batch_size 32
-python models/train.py --model vit --epochs 8 --lr 1e-5 --batch_size 32 --dropout 0.3
+python models/train.py --model vit --epochs 8 --lr 1e-5 --batch_size 32 --dropout 0.0
 ```
 
 ### 3. Empirical Evaluation & Grad-CAM Heatmaps (Phase 4)
@@ -157,4 +177,4 @@ In strict accordance with project policies, **no manual file uploads were perfor
 | Group Member | Roll Number | Git Commit Ownership & Implementation Contributions |
 |--------------|------------|-----------------------------------------------------|
 | **Syeda Faryal Zehra** | `24l-2556` | Data collection & preprocessing scripts; Grad-CAM explainability module (`models/gradcam.py`); training, hyperparameter search, and evaluation pipelines for ResNet-18 & EfficientNet-B0; subgroup bias check. |
-| **Ibrahim Qaiser** | `24l-2513` | Model architecture definitions (`models/architectures.py`); training, hyperparameter search, and evaluation pipeline for Vision Transformer (ViT-B/16); project structure setup, environment configuration (`requirements.txt`), and LaTeX report compilation. |
+| **Ibrahim Qaiser** | `24l-2513` | Model architecture definitions (`models/architectures.py`); training, hyperparameter search, and evaluation pipeline for Vision Transformer (ViT-B/16); interactive web application (`app.py`), project structure setup, environment configuration (`requirements.txt`), and LaTeX report compilation. |
